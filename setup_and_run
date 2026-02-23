@@ -1,0 +1,25 @@
+#!/bin/bash
+set -e
+
+echo "--- 🛠️  Preparing Virtual Environment ---"
+
+# Create venv if it doesn't exist
+if [ ! -d "venv" ]; then
+    python3 -m venv venv
+    echo "Created new virtual environment."
+fi
+
+# Activate venv
+source venv/bin/activate
+
+# Install dependencies
+echo "Installing Python dependencies..."
+pip install -q -r requirements.txt
+
+# Install Ansible collections
+echo "Installing Ansible collections..."
+ansible-galaxy collection install -r requirements.yml
+
+# Run the playbook
+echo "--- 🚀 Launching Playbook ---"
+ansible-playbook playbook.yml --ask-vault-pass "$@"

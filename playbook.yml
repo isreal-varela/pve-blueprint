@@ -1,0 +1,40 @@
+---
+- name: Provision Proxmox Virtual Machines
+  hosts: nomad
+  gather_facts: false
+  # This ensures the role only runs for the host we specify with --limit
+  
+  roles:
+    - role: vm_provision
+      vars:
+        # Connection (from vault.yml)
+        pve_api_host: "{{ vault_pve_api_host }}"
+        pve_api_user: "{{ vault_pve_api_user }}"
+        pve_api_token_id: "{{ vault_pve_api_token_id }}"
+        pve_api_token_secret: "{{ vault_pve_api_token_secret }}"
+
+        # Identity (mapped from your new host_vars file). 
+        pve_node: "{{ host_pve_node }}"
+        pve_template_name: "{{ host_pve_template_name }}"
+        vm_name: "{{ host_vm_name }}"
+        vm_id: "{{ host_vm_id }}"
+
+        # Hardware & Storage
+        vm_memory: "{{ host_vm_memory }}"
+        vm_cpu_cores: "{{ host_vm_cpu_cores }}"
+        vm_storage_pool: "{{ host_vm_storage_pool }}"
+        vm_net_bridge: "{{ host_vm_net_bridge }}"
+        
+        # Cloud-Init & State
+        vm_user: "{{ host_vm_user }}"
+        vm_ssh_public_key: "{{ host_vm_ssh_public_key }}"
+        vm_ip_address: "{{ host_vm_ip_address }}"
+        vm_netmask: "{{ host_vm_netmask }}"
+        vm_gateway: "{{ host_vm_gateway }}"
+        vm_full_clone: "{{ host_vm_full_clone | default(true) }}"
+        vm_start_immediately: "{{ host_vm_start_immediately | default(true) }}"
+       
+  post_tasks:
+    - name: Summary
+      ansible.builtin.debug:
+        msg: "VM {{ vm_name }} has been provisioned on {{ pve_node }}."

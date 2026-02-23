@@ -1,0 +1,4 @@
+# Required for community.general.proxmox_kvm
+proxmoxer>=2.0.1
+requests>=2.31.0
+ansible-core>=2.15.0

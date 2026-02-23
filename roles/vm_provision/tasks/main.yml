@@ -1,0 +1,68 @@
+---
+# Ensure all tasks in this role run from your local machine
+- name: Proxmox Provisioning Tasks
+  delegate_to: localhost
+  block:
+    # 1. Create the VM by cloning the template
+    - name: Clone VM from template
+      community.proxmox.proxmox_kvm:
+        api_host: "{{ pve_api_host }}"
+        api_user: "{{ pve_api_user }}"
+        api_token_id: "{{ pve_api_token_id }}"
+        api_token_secret: "{{ pve_api_token_secret }}"
+        node: "{{ pve_node }}"
+        name: "{{ vm_name }}"
+        # vmid: "{{ vm_id | default(omit) }}"
+        clone: "{{ pve_template_name }}"
+        full: "{{ vm_full_clone | default(true) }}"
+        storage: "{{ host_vm_storage_pool }}"
+        format: qcow2
+        timeout: 300
+      register: clone_result
+    
+    # 2. Configure Hardware (CPU, RAM, Network)
+    - name: Configure VM hardware specs
+      community.proxmox.proxmox_kvm:
+        api_host: "{{ pve_api_host }}"
+        api_user: "{{ pve_api_user }}"
+        api_token_id: "{{ pve_api_token_id }}"
+        api_token_secret: "{{ pve_api_token_secret }}"
+        node: "{{ pve_node }}"
+        name: "{{ vm_name }}"
+        vmid: "{{ clone_result.vmid }}"
+        update: true
+        cores: "{{ vm_cpu_cores }}"
+        sockets: "{{ host_vm_cpu_sockets | default(1) }}"
+        memory: "{{ host_vm_memory }}"
+        net:
+          net0: "virtio,bridge={{ host_vm_net_bridge }}{{ ',tag=' + vm_vlan if vm_vlan is defined else '' }}"
+    
+    # 3. Apply Cloud-Init settings (Identity & Network)
+    - name: Configure Cloud-Init settings
+      community.proxmox.proxmox_kvm:
+        api_host: "{{ pve_api_host }}"
+        api_user: "{{ pve_api_user }}"
+        api_token_id: "{{ pve_api_token_id }}"
+        api_token_secret: "{{ pve_api_token_secret }}"
+        node: "{{ pve_node }}"
+        name: "{{ vm_name }}"
+        vmid: "{{ clone_result.vmid }}"
+        update: true
+        citype: nocloud
+        ciuser: "{{ host_vm_user }}"
+        # sshkeys: "{{ host_vm_ssh_public_key }}"
+        ipconfig:
+          ipconfig0: "ip={{ host_vm_ip_address }}/{{ host_vm_netmask }},gw={{ vm_gateway }}"
+    
+    # 4. Start the VM if requested
+    - name: Ensure VM is started
+      community.proxmox.proxmox_kvm:
+        api_host: "{{ pve_api_host }}"
+        api_user: "{{ pve_api_user }}"
+        api_token_id: "{{ pve_api_token_id }}"
+        api_token_secret: "{{ pve_api_token_secret }}"
+        node: "{{ pve_node }}"
+        name: "{{ vm_name }}"
+        vmid: "{{ clone_result.vmid }}"
+        state: started
+      when: host_vm_start_immediately | default(true)

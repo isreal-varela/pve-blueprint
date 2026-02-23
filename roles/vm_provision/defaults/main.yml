@@ -1,0 +1,14 @@
+pve_node: "pve1" 
+pve_template_name: "rocky-9-medium"
+storage_pool: "lvm-local"
+vm_cpu_cores: 2
+vm_memory: 2048
+vm_net_bridge: "vmbr0"
+vm_user: "admin"
+vm_ssh_public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC..." # Replace with your actual public key
+vm_ip_address: " 192.168.100.65"
+vm_netmask: "24"         # e.g., /24
+vm_gateway: "192.168.100.1"
+vm_full_clone: true      # Set to false for linked clones (faster, uses less disk)      
+vm_start_immediately: true
+vm_name: "default-vm"       # Default name if not overridden by host_vars

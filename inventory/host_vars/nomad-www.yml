@@ -1,0 +1,24 @@
+---
+# --- VM Identity ---
+host_vm_name: "nomad-web-01"
+host_vm_id: 201
+host_pve_node: "pve1"
+host_pve_template_name: "rocky-9-medium"
+
+# --- Hardware Specs (Overrides Defaults) ---
+host_vm_cpu_cores: 4
+host_vm_memory: 4092
+host_vm_storage_pool: "zfs_pool"
+host_vm_net_bridge: "vmbr0"
+  #vm_vlan: 10              # Optional: Tagging for a specific VLAN
+
+# --- Cloud-Init (OS Level Config) ---
+host_vm_user: "sysadmin"
+host_vm_ssh_public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC..." # Replace with your actual public key
+host_vm_ip_address: "192.168.100.150"
+host_vm_netmask: "24"         # e.g., /24
+host_vm_gateway: "192.168.100.1"
+
+# --- Orchestration Behavior ---
+host_vm_full_clone: true      # Set to false for linked clones (faster, uses less disk)
+vm_start_immediately: true

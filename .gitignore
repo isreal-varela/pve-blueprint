@@ -1,0 +1,16 @@
+# Ansible temporary files
+*.retry
+*.log
+
+# Secrets and Vault
+.vault_password
+inventory/group_vars/all/vault.yml.unencrypted
+
+# Python environment (if using venv)
+venv/
+__pycache__/
+
+# VS Code
+.vscode
+.history/
+*.code-workspace
