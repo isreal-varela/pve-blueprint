@@ -19,8 +19,13 @@
         format: qcow2
         timeout: 300
       register: clone_result
-    
-    # 2. Configure Hardware (CPU, RAM, Network)
+
+    # 2. Ensure Cloud-Init drive is attached (workaround for some Proxmox versions)
+    - name: Force Attach Cloud-Init via CLI
+      shell: "qm set {{ clone_result.vmid }} --ide2 {{ host_vm_storage_pool }}:cloudinit,format=raw"
+      delegate_to: pve1 # Requires SSH access to the PVE node
+
+    # 3. Configure Hardware (CPU, RAM, Network)
     - name: Configure VM hardware specs
       community.proxmox.proxmox_kvm:
         api_host: "{{ pve_api_host }}"
@@ -36,8 +41,8 @@
         memory: "{{ host_vm_memory }}"
         net:
           net0: "virtio,bridge={{ host_vm_net_bridge }}{{ ',tag=' + vm_vlan if vm_vlan is defined else '' }}"
-    
-    # 3. Apply Cloud-Init settings (Identity & Network)
+
+    # 4. Apply Cloud-Init settings (Identity & Network)
     - name: Configure Cloud-Init settings
       community.proxmox.proxmox_kvm:
         api_host: "{{ pve_api_host }}"
@@ -49,12 +54,12 @@
         vmid: "{{ clone_result.vmid }}"
         update: true
         citype: nocloud
-        ciuser: "{{ host_vm_user }}"
+        # ciuser: "{{ host_vm_user }}"
         # sshkeys: "{{ host_vm_ssh_public_key }}"
         ipconfig:
           ipconfig0: "ip={{ host_vm_ip_address }}/{{ host_vm_netmask }},gw={{ vm_gateway }}"
-    
-    # 4. Start the VM if requested
+
+    # 5. Start the VM if requested
     - name: Ensure VM is started
       community.proxmox.proxmox_kvm:
         api_host: "{{ pve_api_host }}"

@@ -1,0 +1,32 @@
+---
+- name: Setup React TypeScript Environment
+  hosts: nomad-www
+  become: true
+  vars:
+    app_dir: "/var/www/my-react-app"
+
+  tasks:
+    - name: Enable Node.js 20 Module
+      ansible.builtin.shell: dnf module enable nodejs:20 -y
+
+    - name: Install Node.js and NPM
+      ansible.builtin.dnf:
+        name: nodejs
+        state: present
+
+    #- name: Create App Directory
+    #  ansible.builtin.file:
+    #    path: "{{ app_dir }}"
+    #    state: directory
+    #    owner: "{{ ansible_user }}"
+#
+    #- name: Scaffold Vite React-TS Project
+    #  ansible.builtin.command:
+    #    cmd: "npm create vite@latest . -- --template react-ts"
+    #    chdir: "{{ app_dir }}"
+    #    creates: "{{ app_dir }}/package.json"
+#
+    #- name: Install Project Dependencies
+    #  community.general.npm:
+    #    path: "{{ app_dir }}"
+    #    state: present

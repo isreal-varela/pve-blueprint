@@ -1,0 +1,54 @@
+---
+- name: Install and Secure MongoDB 8.0
+  hosts: nomad-db
+  become: true
+  vars:
+    mongo_admin_user: "admin"
+    mongo_admin_pass: "YourSecurePassword"
+
+  tasks:
+    - name: Add MongoDB 8.0 Repository
+      ansible.builtin.yum_repository:
+        name: mongodb-org-8.0
+        description: MongoDB Repository
+        baseurl: https://repo.mongodb.org/yum/redhat/9/mongodb-org/8.0/x86_64/
+        gpgcheck: yes
+        enabled: yes
+        gpgkey: https://pgp.mongodb.com/server-8.0.asc
+
+    - name: Install MongoDB packages
+      ansible.builtin.dnf:
+        name: mongodb-org
+        state: present
+
+    - name: Ensure OpenSSL 3 compatibility for mongosh
+      ansible.builtin.shell: dnf -y swap mongodb-mongosh mongodb-mongosh-shared-openssl3
+      args:
+        warn: false
+
+    - name: Start and Enable MongoDB
+      ansible.builtin.systemd:
+        name: mongod
+        state: started
+        enabled: yes
+
+    - name: Create Admin User (Initial setup)
+      ansible.builtin.command: >
+        mongosh admin --eval 'db.createUser({user: "{{ mongo_admin_user }}", 
+        pwd: "{{ mongo_admin_pass }}", roles: [{role: "root", db: "admin"}]})'
+      register: user_creation
+      failed_when: user_creation.rc != 0 and 'already exists' not in user_creation.stderr
+
+    - name: Enable Security in config
+      ansible.builtin.blockinfile:
+        path: /etc/mongod.conf
+        block: |
+          security:
+            authorization: enabled
+      notify: Restart MongoDB
+
+  handlers:
+    - name: Restart MongoDB
+      ansible.builtin.systemd:
+        name: mongod
+        state: restarted

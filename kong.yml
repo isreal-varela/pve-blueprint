@@ -1,0 +1,67 @@
+---
+- name: Install Kong Gateway (DB-less) with Firewall
+  hosts: nomad-api
+  become: true
+  vars:
+    # Define which network is allowed to manage Kong
+    mgmt_network: "192.168.100.0/24" 
+
+  tasks:
+    - name: Add Kong OSS Repository (Rocky Linux 9)
+      ansible.builtin.yum_repository:
+        name: kong-oss
+        description: Kong Open Source Repository
+        # Note the 'gateway-oss' in the URL
+        baseurl: https://packages.konghq.com/public/gateway-oss/config.rpm.txt?distro=el&codename=9
+        gpgcheck: yes
+        enabled: yes
+
+    - name: Install Kong
+      ansible.builtin.dnf:
+        name: kong
+        state: present
+
+    # --- FIREWALL CONFIGURATION ---
+    - name: Permit Kong Proxy traffic (Public)
+      ansible.posix.firewalld:
+        port: "{{ item }}/tcp"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop:
+        - 8000  # HTTP Proxy
+        - 8443  # HTTPS Proxy
+
+    - name: Permit Kong Admin API (Restricted to Management Subnet)
+      ansible.posix.firewalld:
+        rich_rule: 'rule family="ipv4" source address="{{ mgmt_network }}" port port="8001" protocol="tcp" accept'
+        permanent: true
+        state: enabled
+        immediate: true
+
+    - name: Permit Kong Manager GUI (Optional - Port 8002)
+      ansible.posix.firewalld:
+        rich_rule: 'rule family="ipv4" source address="{{ mgmt_network }}" port port="8002" protocol="tcp" accept'
+        permanent: true
+        state: enabled
+        immediate: true
+
+    # --- KONG CONFIG ---
+    - name: Configure Kong for DB-less mode
+      ansible.builtin.lineinfile:
+        path: /etc/kong/kong.conf
+        regexp: '^#?database ='
+        line: 'database = off'
+        create: yes
+
+    - name: Set Kong to listen on all interfaces for Admin API
+      ansible.builtin.lineinfile:
+        path: /etc/kong/kong.conf
+        regexp: '^#?admin_listen ='
+        line: 'admin_listen = 0.0.0.0:8001, 0.0.0.0:8444 ssl'
+
+    - name: Start and Enable Kong
+      ansible.builtin.systemd:
+        name: kong
+        state: started
+        enabled: yes
